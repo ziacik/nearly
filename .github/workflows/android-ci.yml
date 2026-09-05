@@ -38,4 +38,4 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
 
       - name: Unit tests and debug builds
-        run: ./gradlew :shared:testDebugUnitTest :mobile:assembleDebug :wear:assembleDebug --stacktrace
+        run: ./gradlew :shared:testDebugUnitTest :mobile:testDebugUnitTest :wear:testDebugUnitTest :mobile:assembleDebug :wear:assembleDebug --stacktrace
