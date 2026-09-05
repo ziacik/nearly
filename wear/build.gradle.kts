@@ -8,10 +8,10 @@ android {
 	compileSdk = 36
 
 	defaultConfig {
-		applicationId = "sk.ziacik.nearly.wear"
+		applicationId = "sk.ziacik.nearly"
 		minSdk = 30
 		targetSdk = 36
-		versionCode = 1
+		versionCode = 20_001
 		versionName = "0.1.0"
 		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 	}

@@ -6,6 +6,10 @@
 		android:allowBackup="true"
 		android:label="Nearly"
 		android:supportsRtl="true">
+		<meta-data
+			android:name="com.google.android.wearable.standalone"
+			android:value="false" />
+
 		<activity
 			android:name=".MainActivity"
 			android:exported="true">
