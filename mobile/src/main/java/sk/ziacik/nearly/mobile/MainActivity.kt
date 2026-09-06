@@ -1,5 +1,6 @@
 package sk.ziacik.nearly.mobile
 
+import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -19,10 +20,13 @@ import sk.ziacik.nearly.mobile.ui.MobileFindViewModel
 class MainActivity : ComponentActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
+		val nearly = application as NearlyMobileApplication
+		val defaultBrightness = window.attributes.screenBrightness
+		applyGlowWindow(nearly.cueController.glowActive.value, defaultBrightness)
+
 		setContent {
 			val findViewModel: MobileFindViewModel = viewModel()
 			val state by findViewModel.state.collectAsState()
-			val nearly = application as NearlyMobileApplication
 			val glowActive by nearly.cueController.glowActive.collectAsState()
 			val permissionLauncher = rememberLauncherForActivityResult(
 				ActivityResultContracts.RequestMultiplePermissions(),
@@ -31,13 +35,9 @@ class MainActivity : ComponentActivity() {
 			}
 
 			DisposableEffect(glowActive) {
-				if (glowActive) {
-					window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-				} else {
-					window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-				}
+				applyGlowWindow(glowActive, defaultBrightness)
 				onDispose {
-					window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+					if (glowActive) applyGlowWindow(false, defaultBrightness)
 				}
 			}
 
@@ -62,5 +62,26 @@ class MainActivity : ComponentActivity() {
 				)
 			}
 		}
+	}
+
+	private fun applyGlowWindow(active: Boolean, defaultBrightness: Float) {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+			setShowWhenLocked(active)
+			setTurnScreenOn(active)
+		} else {
+			val legacyFlags = WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+				WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+			if (active) window.addFlags(legacyFlags) else window.clearFlags(legacyFlags)
+		}
+
+		if (active) {
+			window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+		} else {
+			window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+		}
+
+		val attributes = window.attributes
+		attributes.screenBrightness = if (active) 1f else defaultBrightness
+		window.attributes = attributes
 	}
 }
