@@ -28,6 +28,7 @@ class WearFindCoordinatorTest {
 		val coordinator = coordinator(transport, scanner, haptics)
 
 		coordinator.start()
+		runCurrent()
 		assertEquals(
 			listOf(FindCommand.StartFind(7, CueMode.BOTH), FindCommand.StartProximity(7)),
 			transport.commands,

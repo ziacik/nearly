@@ -28,6 +28,7 @@ class MobileFindCoordinatorTest {
 		val coordinator = coordinator(transport, scanner, haptics)
 
 		coordinator.start()
+		runCurrent()
 		assertEquals(
 			listOf(FindCommand.StartFind(7, CueMode.BOTH), FindCommand.StartProximity(7)),
 			transport.commands,
@@ -48,9 +49,7 @@ class MobileFindCoordinatorTest {
 	fun `missing peer prevents search`() = runTest {
 		val transport = FakeTransport(sendResult = false)
 		val coordinator = coordinator(transport, FakeScanner(), FakeHaptics())
-
 		coordinator.start()
-
 		assertEquals(FindError.PEER_NOT_CONNECTED, coordinator.state.value.error)
 		assertFalse(coordinator.state.value.searching)
 	}
@@ -60,9 +59,7 @@ class MobileFindCoordinatorTest {
 		val transport = FakeTransport()
 		val scanner = FakeScanner(isSupported = false)
 		val coordinator = coordinator(transport, scanner, FakeHaptics())
-
 		coordinator.start()
-
 		assertTrue(coordinator.state.value.searching)
 		assertFalse(coordinator.state.value.proximityAvailable)
 		assertEquals(FindError.CAPABILITY_UNAVAILABLE, coordinator.state.value.error)
@@ -74,10 +71,8 @@ class MobileFindCoordinatorTest {
 		val transport = FakeTransport()
 		val coordinator = coordinator(transport, FakeScanner(), FakeHaptics())
 		coordinator.start()
-
 		advanceTimeBy(SEARCH_TIMEOUT_MS)
 		runCurrent()
-
 		assertFalse(coordinator.state.value.searching)
 		assertEquals(FindError.TIMED_OUT, coordinator.state.value.error)
 		assertTrue(transport.commands.contains(FindCommand.StopFind(7)))

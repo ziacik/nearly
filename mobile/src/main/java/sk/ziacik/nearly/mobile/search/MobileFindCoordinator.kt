@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -21,6 +22,7 @@ import sk.ziacik.nearly.shared.CueMode
 import sk.ziacik.nearly.shared.FindCommand
 import sk.ziacik.nearly.shared.FindError
 import sk.ziacik.nearly.shared.FindUiState
+import sk.ziacik.nearly.shared.ProximityLevel
 import sk.ziacik.nearly.shared.RssiSmoother
 import sk.ziacik.nearly.shared.SEARCH_TIMEOUT_MS
 import sk.ziacik.nearly.shared.hapticIntervalMs
@@ -40,7 +42,7 @@ class MobileFindCoordinator(
 	private var scannerJob: Job? = null
 	private var timeoutJob: Job? = null
 	private var guidanceJob: Job? = null
-	private var guidanceLevel: sk.ziacik.nearly.shared.ProximityLevel? = null
+	private var guidanceLevel: ProximityLevel? = null
 	@Volatile private var activeToken: Int? = null
 
 	val state: StateFlow<FindUiState> = mutableState.asStateFlow()
@@ -124,7 +126,7 @@ class MobileFindCoordinator(
 		}
 	}
 
-	private fun restartGuidance(level: sk.ziacik.nearly.shared.ProximityLevel, token: Int) {
+	private fun restartGuidance(level: ProximityLevel, token: Int) {
 		if (guidanceLevel == level) return
 		guidanceLevel = level
 		guidanceJob?.cancel()
