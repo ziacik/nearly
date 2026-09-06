@@ -38,5 +38,37 @@ jobs:
         with:
           cache-read-only: false
 
-      - name: Unit tests and debug builds
-        run: ./gradlew :shared:testDebugUnitTest :mobile:testDebugUnitTest :wear:testDebugUnitTest :mobile:assembleDebug :wear:assembleDebug --stacktrace
+      - name: Verify project
+        run: |
+          ./gradlew \
+            :shared:testDebugUnitTest \
+            :mobile:testDebugUnitTest \
+            :wear:testDebugUnitTest \
+            :mobile:lintDebug \
+            :wear:lintDebug \
+            :mobile:assembleDebug \
+            :wear:assembleDebug \
+            :mobile:assembleAndroidTest \
+            :wear:assembleAndroidTest \
+            --stacktrace
+
+      - name: Verify no internet permission or client slipped in
+        run: |
+          if grep -R -E 'Retrofit|OkHttp|HttpURLConnection|Firebase|android.permission.INTERNET' mobile/src wear/src shared/src; then
+            echo 'Unexpected internet/cloud implementation found.'
+            exit 1
+          fi
+
+      - name: Inspect packaged permissions
+        run: |
+          apkanalyzer manifest permissions mobile/build/outputs/apk/debug/mobile-debug.apk
+          apkanalyzer manifest permissions wear/build/outputs/apk/debug/wear-debug.apk
+
+      - name: Upload debug APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: nearly-debug-apks
+          path: |
+            mobile/build/outputs/apk/debug/mobile-debug.apk
+            wear/build/outputs/apk/debug/wear-debug.apk
+          if-no-files-found: error
