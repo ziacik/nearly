@@ -50,6 +50,8 @@ class MobileTargetSessionControllerTest {
 		runCurrent()
 
 		assertEquals(listOf(FindCommand.ProximitySample(7, -73)), transport.commands)
+
+		controller.handle(FindCommand.StopProximity(7))
 	}
 
 	@Test
