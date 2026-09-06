@@ -41,6 +41,10 @@ class WearTargetSessionController(
 		}
 	}
 
+	suspend fun stopLocally() = mutex.withLock {
+		stopCurrent()
+	}
+
 	private suspend fun stopCurrent() {
 		val token = activeToken ?: return
 		advertiseSession.stop(token)
