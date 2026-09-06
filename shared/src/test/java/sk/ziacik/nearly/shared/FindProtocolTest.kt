@@ -12,6 +12,7 @@ class FindProtocolTest {
 			FindCommand.StopFind(sessionToken = 42),
 			FindCommand.StartProximity(sessionToken = 42),
 			FindCommand.StopProximity(sessionToken = 42),
+			FindCommand.ProximitySample(sessionToken = 42, rssi = -73),
 			FindCommand.SetCue(sessionToken = 42, cueMode = CueMode.GLOW),
 		)
 
