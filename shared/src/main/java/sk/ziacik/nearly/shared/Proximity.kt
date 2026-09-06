@@ -9,41 +9,45 @@ enum class ProximityLevel {
 
 data class ProximityConfig(
 	val alpha: Double = 0.25,
-	val warmerAt: Int = -78,
-	val hotAt: Int = -66,
-	val veryCloseAt: Int = -55,
+	val warmerThresholdDbm: Double = -75.0,
+	val hotThresholdDbm: Double = -62.0,
+	val veryCloseThresholdDbm: Double = -50.0,
 )
 
 class RssiSmoother(
-	private val alpha: Double,
+	private val alpha: Double = 0.25,
 ) {
 	private var value: Double? = null
 
-	fun add(rssi: Int): Double {
+	fun add(sampleDbm: Int): Double {
 		val previous = value
 		val next = if (previous == null) {
-			rssi.toDouble()
+			sampleDbm.toDouble()
 		} else {
-			alpha * rssi + (1.0 - alpha) * previous
+			alpha * sampleDbm + (1.0 - alpha) * previous
 		}
 		value = next
 		return next
 	}
+
+	fun reset() {
+		value = null
+	}
 }
 
 fun proximityLevel(
-	rssi: Double,
+	rssiDbm: Double,
 	config: ProximityConfig = ProximityConfig(),
 ): ProximityLevel = when {
-	rssi >= config.veryCloseAt -> ProximityLevel.VERY_CLOSE
-	rssi >= config.hotAt -> ProximityLevel.HOT
-	rssi >= config.warmerAt -> ProximityLevel.WARMER
+	rssiDbm >= config.veryCloseThresholdDbm -> ProximityLevel.VERY_CLOSE
+	rssiDbm >= config.hotThresholdDbm -> ProximityLevel.HOT
+	rssiDbm >= config.warmerThresholdDbm -> ProximityLevel.WARMER
 	else -> ProximityLevel.COLD
 }
 
 fun hapticIntervalMs(level: ProximityLevel): Long = when (level) {
-	ProximityLevel.COLD -> 1_400L
-	ProximityLevel.WARMER -> 800L
-	ProximityLevel.HOT -> 400L
-	ProximityLevel.VERY_CLOSE -> 180L
+	ProximityLevel.COLD -> 2_500L
+	ProximityLevel.WARMER -> 1_500L
+	ProximityLevel.HOT -> 750L
+	ProximityLevel.VERY_CLOSE -> 300L
 }

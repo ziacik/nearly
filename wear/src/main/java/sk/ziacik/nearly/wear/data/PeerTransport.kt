@@ -15,6 +15,10 @@ data class PeerCandidate(
 
 fun selectNearbyNodeId(peers: List<PeerCandidate>): String? = peers.firstOrNull(PeerCandidate::isNearby)?.id
 
+interface PeerTransport {
+	suspend fun send(command: FindCommand): Boolean
+}
+
 class FindCommandInbox {
 	private val mutableCommands = MutableSharedFlow<FindCommand>(extraBufferCapacity = 16)
 	val commands = mutableCommands.asSharedFlow()
@@ -22,15 +26,11 @@ class FindCommandInbox {
 	fun offer(command: FindCommand): Boolean = mutableCommands.tryEmit(command)
 }
 
-object WearFindCommands {
-	val inbox = FindCommandInbox()
-}
-
-class WearPeerTransport(context: Context) {
+class WearPeerTransport(context: Context) : PeerTransport {
 	private val nodeClient = Wearable.getNodeClient(context.applicationContext)
 	private val messageClient = Wearable.getMessageClient(context.applicationContext)
 
-	suspend fun send(command: FindCommand): Boolean {
+	override suspend fun send(command: FindCommand): Boolean {
 		val peers = nodeClient.connectedNodes.await().map { node ->
 			PeerCandidate(id = node.id, isNearby = node.isNearby)
 		}

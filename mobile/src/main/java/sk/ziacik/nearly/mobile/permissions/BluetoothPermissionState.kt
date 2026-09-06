@@ -1,6 +1,8 @@
 package sk.ziacik.nearly.mobile.permissions
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -39,3 +41,8 @@ fun bluetoothPermissionState(context: Context): BluetoothPermissionState {
 		)
 	}
 }
+
+@SuppressLint("MissingPermission")
+fun isBluetoothEnabled(context: Context): Boolean = runCatching {
+	context.getSystemService(BluetoothManager::class.java).adapter?.isEnabled == true
+}.getOrDefault(false)
