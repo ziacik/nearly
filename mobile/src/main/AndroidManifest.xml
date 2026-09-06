@@ -10,6 +10,7 @@
 	<uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
 
 	<application
+		android:name=".NearlyMobileApplication"
 		android:allowBackup="true"
 		android:label="Nearly"
 		android:supportsRtl="true">
