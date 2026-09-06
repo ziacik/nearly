@@ -17,7 +17,7 @@ class AndroidBleAdvertiser(context: Context) : BleAdvertiser {
 	private var activeAdvertiser: android.bluetooth.le.BluetoothLeAdvertiser? = null
 	private var activeCallback: AdvertiseCallback? = null
 
-	@SuppressLint("MissingPermission")
+	@get:SuppressLint("MissingPermission")
 	override val isSupported: Boolean
 		get() = runCatching {
 			val adapter = bluetoothManager.adapter ?: return@runCatching false

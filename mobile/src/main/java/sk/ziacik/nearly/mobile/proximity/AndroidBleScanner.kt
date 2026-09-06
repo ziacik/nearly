@@ -18,7 +18,7 @@ class AndroidBleScanner(context: Context) : BleScanner {
 	private val lock = Any()
 	private var activeClose: (() -> Unit)? = null
 
-	@SuppressLint("MissingPermission")
+	@get:SuppressLint("MissingPermission")
 	override val isSupported: Boolean
 		get() = runCatching {
 			val adapter = bluetoothManager.adapter ?: return@runCatching false
