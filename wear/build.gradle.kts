@@ -1,11 +1,31 @@
+import java.util.Base64
+
 plugins {
 	alias(libs.plugins.android.application)
 	alias(libs.plugins.compose.compiler)
 }
 
+val nearlyDebugKeystore = rootProject.file(".gradle/nearly-debug.keystore")
+if (!nearlyDebugKeystore.exists()) {
+	nearlyDebugKeystore.parentFile.mkdirs()
+	nearlyDebugKeystore.writeBytes(
+		Base64.getDecoder().decode(rootProject.file("config/nearly-debug.keystore.b64").readText().trim()),
+	)
+}
+
 android {
 	namespace = "sk.ziacik.nearly.wear"
 	compileSdk = 36
+
+	signingConfigs {
+		getByName("debug") {
+			storeFile = nearlyDebugKeystore
+			storePassword = "android"
+			keyAlias = "androiddebugkey"
+			keyPassword = "android"
+			storeType = "PKCS12"
+		}
+	}
 
 	defaultConfig {
 		applicationId = "sk.ziacik.nearly"

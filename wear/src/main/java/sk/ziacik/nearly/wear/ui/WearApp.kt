@@ -1,5 +1,6 @@
 package sk.ziacik.nearly.wear.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,16 +14,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.Text
-import androidx.wear.compose.material3.TextButton
 import sk.ziacik.nearly.shared.CueMode
 import sk.ziacik.nearly.shared.FindError
 import sk.ziacik.nearly.shared.FindUiState
 import sk.ziacik.nearly.shared.ProximityLevel
+import sk.ziacik.nearly.wear.ui.theme.NearlyWearBackground
+import sk.ziacik.nearly.wear.ui.theme.NearlyWearCoral
+import sk.ziacik.nearly.wear.ui.theme.NearlyWearText
+import sk.ziacik.nearly.wear.ui.theme.NearlyWearTextSecondary
+import sk.ziacik.nearly.wear.ui.theme.NearlyWearTheme
 
 @Composable
 fun WearApp(
@@ -32,71 +39,142 @@ fun WearApp(
 	onCue: (CueMode) -> Unit = {},
 	onGrantPermission: () -> Unit = {},
 ) {
-	MaterialTheme {
+	NearlyWearTheme {
 		AppScaffold {
-			Column(
+			Box(
 				modifier = Modifier
 					.fillMaxSize()
-					.padding(horizontal = 14.dp, vertical = 24.dp),
-				horizontalAlignment = Alignment.CenterHorizontally,
-				verticalArrangement = Arrangement.Center,
+					.background(NearlyWearBackground),
 			) {
-				if (!state.searching) {
-					Text("Nearly", style = MaterialTheme.typography.titleLarge)
-					Spacer(Modifier.height(10.dp))
-					state.error?.let {
-						Text(errorText(it, false), style = MaterialTheme.typography.bodySmall)
-						Spacer(Modifier.height(6.dp))
-					}
-					Button(
-						onClick = onFind,
-						modifier = Modifier.fillMaxWidth(),
-						label = { Text("Find phone") },
-					)
-					if (state.error == FindError.PERMISSION_MISSING) {
-						Spacer(Modifier.height(6.dp))
-						Button(
-							onClick = onGrantPermission,
-							modifier = Modifier.fillMaxWidth(),
-							label = { Text("Grant permission") },
-						)
-					}
-					return@Column
+				if (state.searching) {
+					SearchingContent(state, onStop, onCue)
+				} else {
+					IdleContent(state, onFind, onGrantPermission)
 				}
-
-				Text(
-					state.proximityLevel?.label ?: if (state.proximityAvailable) "Searching…" else "Hot/cold unavailable",
-					style = MaterialTheme.typography.titleLarge,
-				)
-				if (!state.proximityAvailable) {
-					Text("Hot/cold unavailable", style = MaterialTheme.typography.bodySmall)
-				}
-				state.error?.takeIf { it != FindError.TIMED_OUT }?.let {
-					Text(errorText(it, true), style = MaterialTheme.typography.bodySmall)
-				}
-				Spacer(Modifier.height(8.dp))
-
-				Row(
-					modifier = Modifier.fillMaxWidth(),
-					horizontalArrangement = Arrangement.SpaceEvenly,
-				) {
-					CueMode.entries.forEach { mode ->
-						TextButton(
-							onClick = { onCue(mode) },
-							modifier = Modifier.size(48.dp),
-						) {
-							Text(mode.shortLabel)
-						}
-					}
-				}
-				Spacer(Modifier.height(6.dp))
-				Button(
-					onClick = onStop,
-					modifier = Modifier.fillMaxWidth(),
-					label = { Text("Found it") },
-				)
 			}
 		}
+	}
+}
+
+@Composable
+private fun IdleContent(
+	state: FindUiState,
+	onFind: () -> Unit,
+	onGrantPermission: () -> Unit,
+) {
+	Column(
+		modifier = Modifier
+			.fillMaxSize()
+			.padding(horizontal = 18.dp, vertical = 18.dp),
+		horizontalAlignment = Alignment.CenterHorizontally,
+		verticalArrangement = Arrangement.Center,
+	) {
+		NearlyBrandMark(Modifier.size(44.dp))
+		Text("Nearly", style = MaterialTheme.typography.titleMedium, color = NearlyWearText)
+		Text(
+			text = "Find phone",
+			style = MaterialTheme.typography.titleLarge,
+			fontWeight = FontWeight.SemiBold,
+			color = NearlyWearText,
+		)
+		state.error?.let {
+			Text(
+				text = errorText(it, searching = false),
+				style = MaterialTheme.typography.labelSmall,
+				color = NearlyWearTextSecondary,
+				textAlign = TextAlign.Center,
+			)
+		}
+		Spacer(Modifier.height(6.dp))
+		Button(
+			onClick = onFind,
+			modifier = Modifier.fillMaxWidth(),
+			label = { Text("Start", fontWeight = FontWeight.SemiBold) },
+		)
+		if (state.error == FindError.PERMISSION_MISSING) {
+			Spacer(Modifier.height(4.dp))
+			Button(
+				onClick = onGrantPermission,
+				modifier = Modifier.fillMaxWidth(),
+				label = { Text("Permission") },
+			)
+		}
+	}
+}
+
+@Composable
+private fun SearchingContent(
+	state: FindUiState,
+	onStop: () -> Unit,
+	onCue: (CueMode) -> Unit,
+) {
+	Column(
+		modifier = Modifier
+			.fillMaxSize()
+			.padding(horizontal = WearSearchLayout.horizontalPaddingDp.dp)
+			.padding(
+				top = WearSearchLayout.topPaddingDp.dp,
+				bottom = WearSearchLayout.bottomPaddingDp.dp,
+			),
+		horizontalAlignment = Alignment.CenterHorizontally,
+		verticalArrangement = Arrangement.Center,
+	) {
+		WearProximityIndicator(
+			level = state.proximityLevel,
+			searching = state.searching,
+			modifier = Modifier.size(WearSearchLayout.proximitySizeDp.dp),
+		)
+		Text(
+			text = searchStatusText(state),
+			style = MaterialTheme.typography.titleMedium,
+			fontWeight = FontWeight.Bold,
+			color = state.proximityLevel?.accentColor ?: NearlyWearText,
+			textAlign = TextAlign.Center,
+		)
+		if (!state.proximityAvailable && state.error == null) {
+			Text(
+				text = "Hot/cold unavailable",
+				style = MaterialTheme.typography.labelSmall,
+				color = NearlyWearTextSecondary,
+			)
+		}
+		state.error?.takeIf { it != FindError.TIMED_OUT }?.let {
+			Text(
+				text = errorText(it, searching = true),
+				style = MaterialTheme.typography.labelSmall,
+				color = NearlyWearTextSecondary,
+				textAlign = TextAlign.Center,
+			)
+		}
+		Spacer(Modifier.height(WearSearchLayout.sectionGapDp.dp))
+		WearCueSelector(
+			selected = state.cueMode,
+			onCue = onCue,
+			modifier = Modifier.fillMaxWidth(),
+		)
+		Spacer(Modifier.height(WearSearchLayout.sectionGapDp.dp))
+		Button(
+			onClick = onStop,
+			modifier = Modifier
+				.fillMaxWidth(WearSearchLayout.foundButtonWidthFraction)
+				.height(WearSearchLayout.foundButtonHeightDp.dp),
+			label = {
+				Row(verticalAlignment = Alignment.CenterVertically) {
+					NearlyIcon(NearlyIconType.FOUND, Modifier.size(16.dp), NearlyWearText)
+					Spacer(Modifier.size(4.dp))
+					Text("Found it")
+				}
+			},
+		)
+	}
+}
+
+private fun searchStatusText(state: FindUiState): String {
+	val proximityLevel = state.proximityLevel
+	return when {
+		state.error == FindError.PEER_PERMISSION_MISSING -> "Phone needs permission"
+		proximityLevel != null -> proximityLevel.label
+		else -> "Searching…"
 	}
 }
 
@@ -108,11 +186,12 @@ private val ProximityLevel.label: String
 		ProximityLevel.VERY_CLOSE -> "Very close"
 	}
 
-private val CueMode.shortLabel: String
+private val ProximityLevel.accentColor
 	get() = when (this) {
-		CueMode.GLOW -> "G"
-		CueMode.VIBRATE -> "V"
-		CueMode.BOTH -> "B"
+		ProximityLevel.COLD -> sk.ziacik.nearly.wear.ui.theme.NearlyWearLavender
+		ProximityLevel.WARMER -> sk.ziacik.nearly.wear.ui.theme.NearlyWearRose
+		ProximityLevel.HOT -> NearlyWearCoral
+		ProximityLevel.VERY_CLOSE -> sk.ziacik.nearly.wear.ui.theme.NearlyWearAmber
 	}
 
 private fun errorText(error: FindError, searching: Boolean): String = when (error) {
@@ -121,4 +200,5 @@ private fun errorText(error: FindError, searching: Boolean): String = when (erro
 	FindError.CAPABILITY_UNAVAILABLE -> "Hot/cold unsupported"
 	FindError.PERMISSION_MISSING -> "Permission needed for hot/cold"
 	FindError.TIMED_OUT -> "Search timed out"
+	FindError.PEER_PERMISSION_MISSING -> "Open Nearly on your phone"
 }
