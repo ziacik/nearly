@@ -169,10 +169,13 @@ private fun SearchingContent(
 	}
 }
 
-private fun searchStatusText(state: FindUiState): String = when {
-	state.error == FindError.PEER_PERMISSION_MISSING -> "Phone needs permission"
-	state.proximityLevel != null -> state.proximityLevel.label
-	else -> "Searching…"
+private fun searchStatusText(state: FindUiState): String {
+	val proximityLevel = state.proximityLevel
+	return when {
+		state.error == FindError.PEER_PERMISSION_MISSING -> "Phone needs permission"
+		proximityLevel != null -> proximityLevel.label
+		else -> "Searching…"
+	}
 }
 
 private val ProximityLevel.label: String
