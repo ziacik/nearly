@@ -7,6 +7,7 @@ import org.junit.Rule
 import org.junit.Test
 import sk.ziacik.nearly.shared.FindUiState
 import sk.ziacik.nearly.shared.ProximityLevel
+import sk.ziacik.nearly.wear.ui.theme.NearlyWearTheme
 
 class WearAppTest {
 	@get:Rule
@@ -15,7 +16,9 @@ class WearAppTest {
 	@Test
 	fun idleShowsFindPhone() {
 		composeRule.setContent {
-			WearApp(state = FindUiState())
+			NearlyWearTheme {
+				WearApp(state = FindUiState())
+			}
 		}
 
 		composeRule.onNodeWithText("Find phone").assertIsDisplayed()
@@ -24,12 +27,14 @@ class WearAppTest {
 	@Test
 	fun searchShowsProximityAndCueControls() {
 		composeRule.setContent {
-			WearApp(
-				state = FindUiState(
-					searching = true,
-					proximityLevel = ProximityLevel.HOT,
-				),
-			)
+			NearlyWearTheme {
+				WearApp(
+					state = FindUiState(
+						searching = true,
+						proximityLevel = ProximityLevel.HOT,
+					),
+				)
+			}
 		}
 
 		composeRule.onNodeWithText("Hot").assertIsDisplayed()
@@ -42,12 +47,14 @@ class WearAppTest {
 	@Test
 	fun proximityFallbackKeepsCueControls() {
 		composeRule.setContent {
-			WearApp(
-				state = FindUiState(
-					searching = true,
-					proximityAvailable = false,
-				),
-			)
+			NearlyWearTheme {
+				WearApp(
+					state = FindUiState(
+						searching = true,
+						proximityAvailable = false,
+					),
+				)
+			}
 		}
 
 		composeRule.onNodeWithText("Hot/cold unavailable").assertIsDisplayed()
