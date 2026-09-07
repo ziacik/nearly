@@ -55,8 +55,9 @@ jobs:
       - name: Verify stable debug signing identity
         run: |
           expected='5f9411cd7cdab69e8c53008855c42ab9eba668a3c5381757ce38ed015ff60d41'
-          mobile="$(apksigner verify --print-certs mobile/build/outputs/apk/debug/mobile-debug.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
-          wear="$(apksigner verify --print-certs wear/build/outputs/apk/debug/wear-debug.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          apksigner="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          mobile="$("$apksigner" verify --print-certs mobile/build/outputs/apk/debug/mobile-debug.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          wear="$("$apksigner" verify --print-certs wear/build/outputs/apk/debug/wear-debug.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
           test "$mobile" = "$expected"
           test "$wear" = "$expected"
 
