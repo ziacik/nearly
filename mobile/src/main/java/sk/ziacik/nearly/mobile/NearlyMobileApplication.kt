@@ -7,6 +7,7 @@ import kotlinx.coroutines.SupervisorJob
 import sk.ziacik.nearly.mobile.cue.AndroidGlowLauncher
 import sk.ziacik.nearly.mobile.cue.MobileCueController
 import sk.ziacik.nearly.mobile.data.WearPeerTransport
+import sk.ziacik.nearly.mobile.permissions.bluetoothPermissionState
 import sk.ziacik.nearly.mobile.proximity.AndroidBleScanner
 import sk.ziacik.nearly.mobile.search.MobileTargetSessionController
 
@@ -26,6 +27,7 @@ class NearlyMobileApplication : Application() {
 			scanner = AndroidBleScanner(this),
 			transport = WearPeerTransport(this),
 			glowLauncher = AndroidGlowLauncher(this),
+			canScan = { bluetoothPermissionState(this).canScan },
 		)
 	}
 }
