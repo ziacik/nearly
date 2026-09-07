@@ -228,4 +228,5 @@ private fun errorText(error: FindError, searching: Boolean): String = when (erro
 	FindError.CAPABILITY_UNAVAILABLE -> "This device can't provide hot/cold proximity"
 	FindError.PERMISSION_MISSING -> "Nearby permission is needed for hot/cold"
 	FindError.TIMED_OUT -> "Search timed out"
+	FindError.PEER_PERMISSION_MISSING -> "Watch permission is needed for hot/cold"
 }
