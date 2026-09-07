@@ -22,7 +22,7 @@ class WearAppTest {
 	}
 
 	@Test
-	fun searchShowsHotColdLevelAndStop() {
+	fun searchShowsProximityAndCueControls() {
 		composeRule.setContent {
 			WearApp(
 				state = FindUiState(
@@ -33,11 +33,14 @@ class WearAppTest {
 		}
 
 		composeRule.onNodeWithText("Hot").assertIsDisplayed()
+		composeRule.onNodeWithText("Glow").assertIsDisplayed()
+		composeRule.onNodeWithText("Vibrate").assertIsDisplayed()
+		composeRule.onNodeWithText("Both").assertIsDisplayed()
 		composeRule.onNodeWithText("Found it").assertIsDisplayed()
 	}
 
 	@Test
-	fun proximityFallbackIsVisible() {
+	fun proximityFallbackKeepsCueControls() {
 		composeRule.setContent {
 			WearApp(
 				state = FindUiState(
@@ -48,5 +51,8 @@ class WearAppTest {
 		}
 
 		composeRule.onNodeWithText("Hot/cold unavailable").assertIsDisplayed()
+		composeRule.onNodeWithText("Glow").assertIsDisplayed()
+		composeRule.onNodeWithText("Vibrate").assertIsDisplayed()
+		composeRule.onNodeWithText("Both").assertIsDisplayed()
 	}
 }
