@@ -111,14 +111,18 @@ private fun SearchingContent(
 	Column(
 		modifier = Modifier
 			.fillMaxSize()
-			.padding(horizontal = 12.dp, vertical = 10.dp),
+			.padding(horizontal = WearSearchLayout.horizontalPaddingDp.dp)
+			.padding(
+				top = WearSearchLayout.topPaddingDp.dp,
+				bottom = WearSearchLayout.bottomPaddingDp.dp,
+			),
 		horizontalAlignment = Alignment.CenterHorizontally,
 		verticalArrangement = Arrangement.Center,
 	) {
 		WearProximityIndicator(
 			level = state.proximityLevel,
 			searching = state.searching,
-			modifier = Modifier.size(78.dp),
+			modifier = Modifier.size(WearSearchLayout.proximitySizeDp.dp),
 		)
 		Text(
 			text = state.proximityLevel?.label ?: "Searching…",
@@ -141,16 +145,18 @@ private fun SearchingContent(
 				textAlign = TextAlign.Center,
 			)
 		}
-		Spacer(Modifier.height(4.dp))
+		Spacer(Modifier.height(WearSearchLayout.sectionGapDp.dp))
 		WearCueSelector(
 			selected = state.cueMode,
 			onCue = onCue,
 			modifier = Modifier.fillMaxWidth(),
 		)
-		Spacer(Modifier.height(4.dp))
+		Spacer(Modifier.height(WearSearchLayout.sectionGapDp.dp))
 		Button(
 			onClick = onStop,
-			modifier = Modifier.fillMaxWidth(),
+			modifier = Modifier
+				.fillMaxWidth(WearSearchLayout.foundButtonWidthFraction)
+				.height(WearSearchLayout.foundButtonHeightDp.dp),
 			label = {
 				Row(verticalAlignment = Alignment.CenterVertically) {
 					NearlyIcon(NearlyIconType.FOUND, Modifier.size(16.dp), NearlyWearText)
