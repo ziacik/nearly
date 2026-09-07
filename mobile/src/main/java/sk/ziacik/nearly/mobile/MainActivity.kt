@@ -16,6 +16,8 @@ import sk.ziacik.nearly.mobile.permissions.bluetoothPermissionState
 import sk.ziacik.nearly.mobile.ui.GlowScreen
 import sk.ziacik.nearly.mobile.ui.MobileApp
 import sk.ziacik.nearly.mobile.ui.MobileFindViewModel
+import sk.ziacik.nearly.mobile.ui.TargetPermissionScreen
+import sk.ziacik.nearly.shared.FindError
 
 class MainActivity : ComponentActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,10 +30,16 @@ class MainActivity : ComponentActivity() {
 			val findViewModel: MobileFindViewModel = viewModel()
 			val state by findViewModel.state.collectAsState()
 			val glowActive by nearly.cueController.glowActive.collectAsState()
+			val targetError by nearly.targetController.proximityError.collectAsState()
 			val permissionLauncher = rememberLauncherForActivityResult(
 				ActivityResultContracts.RequestMultiplePermissions(),
 			) {
 				findViewModel.start()
+			}
+			val targetPermissionLauncher = rememberLauncherForActivityResult(
+				ActivityResultContracts.RequestMultiplePermissions(),
+			) {
+				nearly.applicationScope.launch { nearly.targetController.retryProximity() }
 			}
 
 			DisposableEffect(glowActive) {
@@ -46,20 +54,40 @@ class MainActivity : ComponentActivity() {
 				if (missing.isEmpty()) findViewModel.start() else permissionLauncher.launch(missing.toTypedArray())
 			}
 
-			if (glowActive) {
-				GlowScreen(
-					onFound = {
-						nearly.applicationScope.launch { nearly.targetController.stopLocally() }
-					},
-				)
-			} else {
-				MobileApp(
-					state = state,
-					onFind = ::requestOrStart,
-					onStop = findViewModel::stop,
-					onCue = findViewModel::setCue,
-					onGrantPermission = ::requestOrStart,
-				)
+			fun requestTargetPermission() {
+				val missing = bluetoothPermissionState(this).missingRuntimePermissions
+				if (missing.isEmpty()) {
+					nearly.applicationScope.launch { nearly.targetController.retryProximity() }
+				} else {
+					targetPermissionLauncher.launch(missing.toTypedArray())
+				}
+			}
+
+			fun stopTarget() {
+				nearly.applicationScope.launch { nearly.targetController.stopLocally() }
+			}
+
+			when {
+				glowActive && targetError == FindError.PERMISSION_MISSING -> {
+					TargetPermissionScreen(
+						onGrantPermission = ::requestTargetPermission,
+						onFound = ::stopTarget,
+					)
+				}
+
+				glowActive -> {
+					GlowScreen(onFound = ::stopTarget)
+				}
+
+				else -> {
+					MobileApp(
+						state = state,
+						onFind = ::requestOrStart,
+						onStop = findViewModel::stop,
+						onCue = findViewModel::setCue,
+						onGrantPermission = ::requestOrStart,
+					)
+				}
 			}
 		}
 	}
