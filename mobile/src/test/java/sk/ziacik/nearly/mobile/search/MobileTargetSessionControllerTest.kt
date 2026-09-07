@@ -57,6 +57,33 @@ class MobileTargetSessionControllerTest {
 	}
 
 	@Test
+	fun `missing scan permission is reported before capability check`() = runTest {
+		val transport = FakeTransport()
+		val scanner = object : BleScanner {
+			override val isSupported = false
+			override fun scan(sessionToken: Int): Flow<Int> = error("scan must not start without permission")
+			override suspend fun stop() = Unit
+		}
+		val controller = controller(
+			FakeCueController(),
+			scanner,
+			transport,
+			FakeGlowLauncher(),
+			canScan = { false },
+		)
+
+		controller.handle(FindCommand.StartFind(7, CueMode.BOTH))
+		controller.handle(FindCommand.StartProximity(7))
+		runCurrent()
+
+		assertEquals(FindError.PERMISSION_MISSING, controller.proximityError.value)
+		assertEquals(
+			FindCommand.ProximityUnavailable(7, FindError.PEER_PERMISSION_MISSING),
+			transport.commands.last(),
+		)
+	}
+
+	@Test
 	fun `missing scan permission is reported to watch instead of hanging`() = runTest {
 		val transport = FakeTransport()
 		val scanner = object : BleScanner {
@@ -131,12 +158,14 @@ class MobileTargetSessionControllerTest {
 		scanner: BleScanner,
 		transport: FakeTransport,
 		glow: FakeGlowLauncher,
+		canScan: () -> Boolean = { true },
 	) = MobileTargetSessionController(
 		scope = this,
 		cueController = cue,
 		scanner = scanner,
 		transport = transport,
 		glowLauncher = glow,
+		canScan = canScan,
 	)
 
 	private class FakeCueController : CueController {
