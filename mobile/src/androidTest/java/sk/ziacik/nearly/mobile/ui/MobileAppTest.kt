@@ -13,16 +13,18 @@ class MobileAppTest {
 	val composeRule = createComposeRule()
 
 	@Test
-	fun idleShowsFindWatch() {
+	fun idleShowsBrandedFindWatchHero() {
 		composeRule.setContent {
 			MobileApp(state = FindUiState())
 		}
 
-		composeRule.onNodeWithText("Find watch").assertIsDisplayed()
+		composeRule.onNodeWithText("Nearly").assertIsDisplayed()
+		composeRule.onNodeWithText("Find your watch").assertIsDisplayed()
+		composeRule.onNodeWithText("Start searching").assertIsDisplayed()
 	}
 
 	@Test
-	fun searchShowsHotColdLevel() {
+	fun searchShowsProximityAndCueControls() {
 		composeRule.setContent {
 			MobileApp(
 				state = FindUiState(
@@ -32,7 +34,11 @@ class MobileAppTest {
 			)
 		}
 
+		composeRule.onNodeWithText("Finding your watch…").assertIsDisplayed()
 		composeRule.onNodeWithText("Very close").assertIsDisplayed()
+		composeRule.onNodeWithText("Glow").assertIsDisplayed()
+		composeRule.onNodeWithText("Vibrate").assertIsDisplayed()
+		composeRule.onNodeWithText("Both").assertIsDisplayed()
 		composeRule.onNodeWithText("Found it").assertIsDisplayed()
 	}
 
