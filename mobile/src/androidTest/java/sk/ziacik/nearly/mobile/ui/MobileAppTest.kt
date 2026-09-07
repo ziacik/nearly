@@ -65,4 +65,16 @@ class MobileAppTest {
 		composeRule.onNodeWithText("Vibrate").assertIsDisplayed()
 		composeRule.onNodeWithText("Both").assertIsDisplayed()
 	}
+
+	@Test
+	fun targetMissingPermissionOffersGrantAction() {
+		composeRule.setContent {
+			NearlyTheme {
+				TargetPermissionScreen()
+			}
+		}
+
+		composeRule.onNodeWithText("Nearby devices permission needed").assertIsDisplayed()
+		composeRule.onNodeWithText("Allow Nearby devices").assertIsDisplayed()
+	}
 }
