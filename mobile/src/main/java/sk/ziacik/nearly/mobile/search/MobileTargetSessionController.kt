@@ -24,6 +24,7 @@ class MobileTargetSessionController(
 	private val scanner: BleScanner,
 	private val transport: PeerTransport,
 	private val glowLauncher: GlowLauncher,
+	private val canScan: () -> Boolean = { true },
 ) {
 	private val mutex = Mutex()
 	private var proximityJob: Job? = null
@@ -84,6 +85,16 @@ class MobileTargetSessionController(
 
 	private fun startProximity(sessionToken: Int) {
 		if (proximityJob?.isActive == true) return
+		if (!canScan()) {
+			proximityJob = scope.launch {
+				reportProximityUnavailable(
+					sessionToken = sessionToken,
+					localError = FindError.PERMISSION_MISSING,
+					peerError = FindError.PEER_PERMISSION_MISSING,
+				)
+			}
+			return
+		}
 		if (!scanner.isSupported) {
 			proximityJob = scope.launch {
 				reportProximityUnavailable(
