@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import org.junit.Rule
 import org.junit.Test
+import sk.ziacik.nearly.mobile.ui.theme.NearlyTheme
 import sk.ziacik.nearly.shared.FindUiState
 import sk.ziacik.nearly.shared.ProximityLevel
 
@@ -15,7 +16,9 @@ class MobileAppTest {
 	@Test
 	fun idleShowsBrandedFindWatchHero() {
 		composeRule.setContent {
-			MobileApp(state = FindUiState())
+			NearlyTheme {
+				MobileApp(state = FindUiState())
+			}
 		}
 
 		composeRule.onNodeWithText("Nearly").assertIsDisplayed()
@@ -26,12 +29,14 @@ class MobileAppTest {
 	@Test
 	fun searchShowsProximityAndCueControls() {
 		composeRule.setContent {
-			MobileApp(
-				state = FindUiState(
-					searching = true,
-					proximityLevel = ProximityLevel.VERY_CLOSE,
-				),
-			)
+			NearlyTheme {
+				MobileApp(
+					state = FindUiState(
+						searching = true,
+						proximityLevel = ProximityLevel.VERY_CLOSE,
+					),
+				)
+			}
 		}
 
 		composeRule.onNodeWithText("Finding your watch…").assertIsDisplayed()
@@ -45,12 +50,14 @@ class MobileAppTest {
 	@Test
 	fun proximityFallbackKeepsSilentControls() {
 		composeRule.setContent {
-			MobileApp(
-				state = FindUiState(
-					searching = true,
-					proximityAvailable = false,
-				),
-			)
+			NearlyTheme {
+				MobileApp(
+					state = FindUiState(
+						searching = true,
+						proximityAvailable = false,
+					),
+				)
+			}
 		}
 
 		composeRule.onNodeWithText("Hot/cold unavailable").assertIsDisplayed()
