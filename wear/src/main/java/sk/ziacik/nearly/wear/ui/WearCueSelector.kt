@@ -40,11 +40,11 @@ fun WearCueSelector(
 			Column(
 				modifier = Modifier
 					.weight(1f)
-					.height(46.dp)
+					.height(WearSearchLayout.cueHeightDp.dp)
 					.background(if (selectedMode) NearlyWearSurfaceHigh else NearlyWearSurface, shape)
 					.border(1.dp, if (selectedMode) NearlyWearCoral else Color.Transparent, shape)
 					.clickable { onCue(mode) }
-					.padding(vertical = 4.dp),
+					.padding(vertical = 3.dp),
 				horizontalAlignment = Alignment.CenterHorizontally,
 				verticalArrangement = Arrangement.Center,
 			) {
