@@ -125,12 +125,13 @@ private fun SearchingContent(
 			modifier = Modifier.size(WearSearchLayout.proximitySizeDp.dp),
 		)
 		Text(
-			text = state.proximityLevel?.label ?: "Searching…",
+			text = searchStatusText(state),
 			style = MaterialTheme.typography.titleMedium,
 			fontWeight = FontWeight.Bold,
 			color = state.proximityLevel?.accentColor ?: NearlyWearText,
+			textAlign = TextAlign.Center,
 		)
-		if (!state.proximityAvailable) {
+		if (!state.proximityAvailable && state.error == null) {
 			Text(
 				text = "Hot/cold unavailable",
 				style = MaterialTheme.typography.labelSmall,
@@ -168,6 +169,12 @@ private fun SearchingContent(
 	}
 }
 
+private fun searchStatusText(state: FindUiState): String = when {
+	state.error == FindError.PEER_PERMISSION_MISSING -> "Phone needs permission"
+	state.proximityLevel != null -> state.proximityLevel.label
+	else -> "Searching…"
+}
+
 private val ProximityLevel.label: String
 	get() = when (this) {
 		ProximityLevel.COLD -> "Cold"
@@ -190,4 +197,5 @@ private fun errorText(error: FindError, searching: Boolean): String = when (erro
 	FindError.CAPABILITY_UNAVAILABLE -> "Hot/cold unsupported"
 	FindError.PERMISSION_MISSING -> "Permission needed for hot/cold"
 	FindError.TIMED_OUT -> "Search timed out"
+	FindError.PEER_PERMISSION_MISSING -> "Open Nearly on your phone"
 }
