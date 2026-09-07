@@ -13,6 +13,10 @@ class FindProtocolTest {
 			FindCommand.StartProximity(sessionToken = 42),
 			FindCommand.StopProximity(sessionToken = 42),
 			FindCommand.ProximitySample(sessionToken = 42, rssi = -73),
+			FindCommand.ProximityUnavailable(
+				sessionToken = 42,
+				error = FindError.PEER_PERMISSION_MISSING,
+			),
 			FindCommand.SetCue(sessionToken = 42, cueMode = CueMode.GLOW),
 		)
 
