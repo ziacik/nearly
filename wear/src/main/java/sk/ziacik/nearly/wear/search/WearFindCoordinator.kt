@@ -4,6 +4,7 @@ import java.security.SecureRandom
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,12 +27,13 @@ import sk.ziacik.nearly.shared.proximityLevel
 import sk.ziacik.nearly.wear.cue.GuidanceHaptics
 import sk.ziacik.nearly.wear.data.PeerTransport
 import sk.ziacik.nearly.wear.permissions.BluetoothPermissionState
-import sk.ziacik.nearly.wear.proximity.BleScanner
+import sk.ziacik.nearly.wear.proximity.BleAdvertiseSession
 
 class WearFindCoordinator(
 	private val scope: CoroutineScope,
 	private val transport: PeerTransport,
-	private val scanner: BleScanner,
+	private val advertiseSession: BleAdvertiseSession,
+	private val proximitySamples: Flow<FindCommand.ProximitySample>,
 	private val guidanceHaptics: GuidanceHaptics,
 	private val permissionState: () -> BluetoothPermissionState,
 	private val bluetoothEnabled: () -> Boolean,
@@ -39,7 +41,7 @@ class WearFindCoordinator(
 ) {
 	private val mutex = Mutex()
 	private val mutableState = MutableStateFlow(FindUiState())
-	private var scannerJob: Job? = null
+	private var proximityJob: Job? = null
 	private var timeoutJob: Job? = null
 	private var guidanceJob: Job? = null
 	private var guidanceLevel: ProximityLevel? = null
@@ -82,7 +84,7 @@ class WearFindCoordinator(
 
 	private suspend fun startProximity(token: Int) {
 		val permissions = permissionState()
-		if (!permissions.canScan) {
+		if (!permissions.canAdvertise) {
 			markProximityUnavailable(token, FindError.PERMISSION_MISSING)
 			return
 		}
@@ -90,28 +92,22 @@ class WearFindCoordinator(
 			markProximityUnavailable(token, FindError.BLUETOOTH_OFF)
 			return
 		}
-		if (!scanner.isSupported) {
+
+		val advertiseResult = advertiseSession.start(token)
+		if (advertiseResult.isFailure) {
 			markProximityUnavailable(token, FindError.CAPABILITY_UNAVAILABLE)
 			return
 		}
 
-		val proximitySent = runCatching {
-			transport.send(FindCommand.StartProximity(token))
-		}.getOrDefault(false)
-		if (!proximitySent) {
-			markProximityUnavailable(token, FindError.PEER_NOT_CONNECTED)
-			return
-		}
-
 		val smoother = RssiSmoother()
-		scannerJob = scope.launch {
-			scanner.scan(token)
+		proximityJob = scope.launch {
+			proximitySamples
 				.catch {
 					markProximityUnavailable(token, FindError.CAPABILITY_UNAVAILABLE)
 				}
 				.collect { sample ->
-					if (activeToken != token) return@collect
-					val smoothed = smoother.add(sample)
+					if (activeToken != token || sample.sessionToken != token) return@collect
+					val smoothed = smoother.add(sample.rssi)
 					val level = proximityLevel(smoothed)
 					mutableState.update {
 						it.copy(
@@ -123,6 +119,21 @@ class WearFindCoordinator(
 					}
 					restartGuidance(level, token)
 				}
+		}
+
+		val proximitySent = runCatching {
+			transport.send(FindCommand.StartProximity(token))
+		}.getOrDefault(false)
+		if (!proximitySent) {
+			proximityJob?.cancel()
+			proximityJob = null
+			advertiseSession.stop(token)
+			markProximityUnavailable(token, FindError.PEER_NOT_CONNECTED)
+			return
+		}
+
+		mutableState.update {
+			it.copy(proximityAvailable = true, error = null)
 		}
 	}
 
@@ -163,12 +174,12 @@ class WearFindCoordinator(
 
 		if (cancelTimeout) timeoutJob?.cancel()
 		timeoutJob = null
-		scannerJob?.cancel()
-		scannerJob = null
+		proximityJob?.cancel()
+		proximityJob = null
 		guidanceJob?.cancel()
 		guidanceJob = null
 		guidanceLevel = null
-		runCatching { scanner.stop() }
+		advertiseSession.stop(token)
 		guidanceHaptics.stop()
 		runCatching { transport.send(FindCommand.StopProximity(token)) }
 		runCatching { transport.send(FindCommand.StopFind(token)) }

@@ -7,6 +7,7 @@ object FindProtocol {
 	const val STOP_FIND_PATH = "/nearly/find/stop"
 	const val START_PROXIMITY_PATH = "/nearly/proximity/start"
 	const val STOP_PROXIMITY_PATH = "/nearly/proximity/stop"
+	const val PROXIMITY_SAMPLE_PATH = "/nearly/proximity/sample"
 	const val SET_CUE_PATH = "/nearly/cue/set"
 
 	data class Message(
@@ -19,6 +20,7 @@ object FindProtocol {
 		is FindCommand.StopFind -> tokenMessage(STOP_FIND_PATH, command.sessionToken)
 		is FindCommand.StartProximity -> tokenMessage(START_PROXIMITY_PATH, command.sessionToken)
 		is FindCommand.StopProximity -> tokenMessage(STOP_PROXIMITY_PATH, command.sessionToken)
+		is FindCommand.ProximitySample -> proximitySampleMessage(command.sessionToken, command.rssi)
 		is FindCommand.SetCue -> cueMessage(SET_CUE_PATH, command.sessionToken, command.cueMode)
 	}
 
@@ -27,6 +29,9 @@ object FindProtocol {
 		STOP_FIND_PATH -> decodeToken(payload)?.let(FindCommand::StopFind)
 		START_PROXIMITY_PATH -> decodeToken(payload)?.let(FindCommand::StartProximity)
 		STOP_PROXIMITY_PATH -> decodeToken(payload)?.let(FindCommand::StopProximity)
+		PROXIMITY_SAMPLE_PATH -> decodeProximitySample(payload)?.let { (token, rssi) ->
+			FindCommand.ProximitySample(token, rssi)
+		}
 		SET_CUE_PATH -> decodeCue(payload)?.let { (token, cue) -> FindCommand.SetCue(token, cue) }
 		else -> null
 	}
@@ -44,6 +49,14 @@ object FindProtocol {
 			.array(),
 	)
 
+	private fun proximitySampleMessage(sessionToken: Int, rssi: Int): Message = Message(
+		path = PROXIMITY_SAMPLE_PATH,
+		payload = ByteBuffer.allocate(Int.SIZE_BYTES * 2)
+			.putInt(sessionToken)
+			.putInt(rssi)
+			.array(),
+	)
+
 	private fun decodeCue(payload: ByteArray): Pair<Int, CueMode>? {
 		if (payload.size != Int.SIZE_BYTES + 1) return null
 		val buffer = ByteBuffer.wrap(payload)
@@ -55,5 +68,11 @@ object FindProtocol {
 	private fun decodeToken(payload: ByteArray): Int? {
 		if (payload.size != Int.SIZE_BYTES) return null
 		return ByteBuffer.wrap(payload).int
+	}
+
+	private fun decodeProximitySample(payload: ByteArray): Pair<Int, Int>? {
+		if (payload.size != Int.SIZE_BYTES * 2) return null
+		val buffer = ByteBuffer.wrap(payload)
+		return buffer.int to buffer.int
 	}
 }

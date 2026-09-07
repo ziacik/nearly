@@ -1,6 +1,5 @@
 package sk.ziacik.nearly.wear.search
 
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -17,48 +16,77 @@ import sk.ziacik.nearly.shared.SEARCH_TIMEOUT_MS
 import sk.ziacik.nearly.wear.cue.GuidanceHaptics
 import sk.ziacik.nearly.wear.data.PeerTransport
 import sk.ziacik.nearly.wear.permissions.BluetoothPermissionState
-import sk.ziacik.nearly.wear.proximity.BleScanner
+import sk.ziacik.nearly.wear.proximity.BleAdvertiseSession
+import sk.ziacik.nearly.wear.proximity.BleAdvertiser
 
 class WearFindCoordinatorTest {
 	@Test
-	fun `start scan and stop follow expected command order`() = runTest {
+	fun `watch advertises and uses phone rssi samples for guidance`() = runTest {
 		val transport = FakeTransport()
-		val scanner = FakeScanner()
+		val advertiser = FakeAdvertiser()
+		val samples = MutableSharedFlow<FindCommand.ProximitySample>(extraBufferCapacity = 8)
 		val haptics = FakeHaptics()
-		val coordinator = coordinator(transport, scanner, haptics)
+		val coordinator = coordinator(transport, advertiser, samples, haptics)
 
 		coordinator.start()
 		runCurrent()
+		assertEquals(listOf(7), advertiser.startedTokens)
 		assertEquals(
 			listOf(FindCommand.StartFind(7, CueMode.BOTH), FindCommand.StartProximity(7)),
 			transport.commands,
 		)
 
-		scanner.samples.emit(-80)
+		samples.emit(FindCommand.ProximitySample(7, -80))
 		runCurrent()
 		assertEquals(ProximityLevel.COLD, coordinator.state.value.proximityLevel)
 		assertTrue(haptics.tickCount > 0)
 
 		coordinator.stop()
+		assertEquals(1, advertiser.stopCount)
 		assertEquals(FindCommand.StopProximity(7), transport.commands[2])
 		assertEquals(FindCommand.StopFind(7), transport.commands[3])
 		assertFalse(coordinator.state.value.searching)
 	}
 
 	@Test
+	fun `samples for another session are ignored`() = runTest {
+		val samples = MutableSharedFlow<FindCommand.ProximitySample>(extraBufferCapacity = 8)
+		val coordinator = coordinator(FakeTransport(), FakeAdvertiser(), samples, FakeHaptics())
+		coordinator.start()
+		runCurrent()
+
+		samples.emit(FindCommand.ProximitySample(8, -45))
+		runCurrent()
+
+		assertEquals(null, coordinator.state.value.proximityLevel)
+	}
+
+	@Test
 	fun `missing peer prevents search`() = runTest {
 		val transport = FakeTransport(sendResult = false)
-		val coordinator = coordinator(transport, FakeScanner(), FakeHaptics())
+		val advertiser = FakeAdvertiser()
+		val coordinator = coordinator(
+			transport,
+			advertiser,
+			MutableSharedFlow(extraBufferCapacity = 8),
+			FakeHaptics(),
+		)
 		coordinator.start()
 		assertEquals(FindError.PEER_NOT_CONNECTED, coordinator.state.value.error)
 		assertFalse(coordinator.state.value.searching)
+		assertEquals(emptyList<Int>(), advertiser.startedTokens)
 	}
 
 	@Test
 	fun `unsupported proximity keeps silent find alive`() = runTest {
 		val transport = FakeTransport()
-		val scanner = FakeScanner(isSupported = false)
-		val coordinator = coordinator(transport, scanner, FakeHaptics())
+		val advertiser = FakeAdvertiser(startResult = Result.failure(UnsupportedOperationException()))
+		val coordinator = coordinator(
+			transport,
+			advertiser,
+			MutableSharedFlow(extraBufferCapacity = 8),
+			FakeHaptics(),
+		)
 		coordinator.start()
 		assertTrue(coordinator.state.value.searching)
 		assertFalse(coordinator.state.value.proximityAvailable)
@@ -69,23 +97,32 @@ class WearFindCoordinatorTest {
 	@Test
 	fun `search times out at exactly two minutes and cleans up`() = runTest {
 		val transport = FakeTransport()
-		val coordinator = coordinator(transport, FakeScanner(), FakeHaptics())
+		val advertiser = FakeAdvertiser()
+		val coordinator = coordinator(
+			transport,
+			advertiser,
+			MutableSharedFlow(extraBufferCapacity = 8),
+			FakeHaptics(),
+		)
 		coordinator.start()
 		advanceTimeBy(SEARCH_TIMEOUT_MS)
 		runCurrent()
 		assertFalse(coordinator.state.value.searching)
 		assertEquals(FindError.TIMED_OUT, coordinator.state.value.error)
+		assertEquals(1, advertiser.stopCount)
 		assertTrue(transport.commands.contains(FindCommand.StopFind(7)))
 	}
 
 	private fun kotlinx.coroutines.test.TestScope.coordinator(
 		transport: FakeTransport,
-		scanner: FakeScanner,
+		advertiser: FakeAdvertiser,
+		samples: MutableSharedFlow<FindCommand.ProximitySample>,
 		haptics: FakeHaptics,
 	) = WearFindCoordinator(
 		scope = this,
 		transport = transport,
-		scanner = scanner,
+		advertiseSession = BleAdvertiseSession(advertiser),
+		proximitySamples = samples,
 		guidanceHaptics = haptics,
 		permissionState = { BluetoothPermissionState(true, true, true, emptyList()) },
 		bluetoothEnabled = { true },
@@ -100,10 +137,21 @@ class WearFindCoordinatorTest {
 		}
 	}
 
-	private class FakeScanner(override val isSupported: Boolean = true) : BleScanner {
-		val samples = MutableSharedFlow<Int>(extraBufferCapacity = 8)
-		override fun scan(sessionToken: Int): Flow<Int> = samples
-		override suspend fun stop() = Unit
+	private class FakeAdvertiser(
+		private val startResult: Result<Unit> = Result.success(Unit),
+	) : BleAdvertiser {
+		override val isSupported: Boolean = startResult.isSuccess
+		val startedTokens = mutableListOf<Int>()
+		var stopCount = 0
+
+		override suspend fun start(sessionToken: Int): Result<Unit> {
+			startedTokens += sessionToken
+			return startResult
+		}
+
+		override suspend fun stop() {
+			stopCount++
+		}
 	}
 
 	private class FakeHaptics : GuidanceHaptics {

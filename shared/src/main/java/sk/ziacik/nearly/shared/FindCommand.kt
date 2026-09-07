@@ -26,6 +26,11 @@ sealed interface FindCommand {
 		override val sessionToken: Int,
 	) : FindCommand
 
+	data class ProximitySample(
+		override val sessionToken: Int,
+		val rssi: Int,
+	) : FindCommand
+
 	data class SetCue(
 		override val sessionToken: Int,
 		val cueMode: CueMode,
