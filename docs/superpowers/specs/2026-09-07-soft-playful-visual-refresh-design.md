@@ -113,19 +113,17 @@ Layout:
 - current state as large text: `Cold`, `Warmer`, `Hot`, `Very close`,
 - one short guidance line,
 - three cue tiles: `Glow`, `Vibrate`, `Both`,
-- one clear `Stop` / `Found it` action.
+- one clear `Found it` action that stops the search.
 
 The existing signal-dot indicator is replaced by a branded proximity ring/orb.
 
 The ring should communicate the state even before the user reads the label. Color warmth, illuminated arc/rings, and subtle scale or pulse may change with proximity.
 
-### Found / Very Close
+### Very Close / Completion
 
-`Very close` should feel satisfying but restrained.
+`Very close` is the strongest and warmest search state. It should feel satisfying but restrained, using the warmest ring/orb treatment and a short reassuring line such as `It's right around here.`
 
-The visual state may become a warm central orb or ring with the strongest glow. The main copy is `It's here!` or `Very close` depending on the actual state model.
-
-Do not introduce a separate persistent navigation destination. This is a transient search state.
+There is **no separate persistent or transient Found screen** in this refresh. Pressing `Found it` immediately stops target cues, proximity work, and the active search exactly as it does today, then returns to the idle screen.
 
 ### Error States
 
@@ -173,13 +171,13 @@ Wear remains more minimal than mobile.
 - large proximity label in the center,
 - minimal secondary guidance,
 - cue controls reduced to icons or very short labels,
-- easy stop/found action reachable without dense layout.
+- easy `Found it` action reachable without dense layout.
 
 The ring must respect round-screen safe areas and remain readable on Galaxy Watch FE-sized displays.
 
-### Very Close / Found
+### Very Close
 
-Use the warmest state, a simple confirmation, and minimal cue controls. No celebration graphics or confetti.
+Use the warmest state and a simple confirmation such as `Right around here.` while keeping the existing `Found it` action. No celebration graphics or confetti.
 
 ## Iconography
 
