@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import org.junit.Rule
 import org.junit.Test
+import sk.ziacik.nearly.shared.FindError
 import sk.ziacik.nearly.shared.FindUiState
 import sk.ziacik.nearly.shared.ProximityLevel
 import sk.ziacik.nearly.wear.ui.theme.NearlyWearTheme
@@ -61,5 +62,23 @@ class WearAppTest {
 		composeRule.onNodeWithText("Glow").assertIsDisplayed()
 		composeRule.onNodeWithText("Vibrate").assertIsDisplayed()
 		composeRule.onNodeWithText("Both").assertIsDisplayed()
+	}
+
+	@Test
+	fun phonePermissionFailureIsActionable() {
+		composeRule.setContent {
+			NearlyWearTheme {
+				WearApp(
+					state = FindUiState(
+						searching = true,
+						proximityAvailable = false,
+						error = FindError.PEER_PERMISSION_MISSING,
+					),
+				)
+			}
+		}
+
+		composeRule.onNodeWithText("Phone needs permission").assertIsDisplayed()
+		composeRule.onNodeWithText("Open Nearly on your phone").assertIsDisplayed()
 	}
 }
