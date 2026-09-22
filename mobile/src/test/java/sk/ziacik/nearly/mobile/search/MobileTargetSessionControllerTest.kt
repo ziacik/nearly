@@ -3,6 +3,7 @@ package sk.ziacik.nearly.mobile.search
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -14,6 +15,7 @@ import sk.ziacik.nearly.mobile.data.PeerTransport
 import sk.ziacik.nearly.mobile.proximity.BleScanner
 import sk.ziacik.nearly.shared.CueMode
 import sk.ziacik.nearly.shared.FindCommand
+import sk.ziacik.nearly.shared.FindError
 
 class MobileTargetSessionControllerTest {
 	@Test
@@ -52,6 +54,56 @@ class MobileTargetSessionControllerTest {
 		assertEquals(listOf(FindCommand.ProximitySample(7, -73)), transport.commands)
 
 		controller.handle(FindCommand.StopProximity(7))
+	}
+
+	@Test
+	fun `missing scan permission is reported before capability check`() = runTest {
+		val transport = FakeTransport()
+		val scanner = object : BleScanner {
+			override val isSupported = false
+			override fun scan(sessionToken: Int): Flow<Int> = error("scan must not start without permission")
+			override suspend fun stop() = Unit
+		}
+		val controller = controller(
+			FakeCueController(),
+			scanner,
+			transport,
+			FakeGlowLauncher(),
+			canScan = { false },
+		)
+
+		controller.handle(FindCommand.StartFind(7, CueMode.BOTH))
+		controller.handle(FindCommand.StartProximity(7))
+		runCurrent()
+
+		assertEquals(FindError.PERMISSION_MISSING, controller.proximityError.value)
+		assertEquals(
+			FindCommand.ProximityUnavailable(7, FindError.PEER_PERMISSION_MISSING),
+			transport.commands.last(),
+		)
+	}
+
+	@Test
+	fun `missing scan permission is reported to watch instead of hanging`() = runTest {
+		val transport = FakeTransport()
+		val scanner = object : BleScanner {
+			override val isSupported = true
+			override fun scan(sessionToken: Int): Flow<Int> = flow {
+				throw SecurityException("BLUETOOTH_SCAN denied")
+			}
+			override suspend fun stop() = Unit
+		}
+		val controller = controller(FakeCueController(), scanner, transport, FakeGlowLauncher())
+
+		controller.handle(FindCommand.StartFind(7, CueMode.BOTH))
+		controller.handle(FindCommand.StartProximity(7))
+		runCurrent()
+
+		assertEquals(FindError.PERMISSION_MISSING, controller.proximityError.value)
+		assertEquals(
+			FindCommand.ProximityUnavailable(7, FindError.PEER_PERMISSION_MISSING),
+			transport.commands.last(),
+		)
 	}
 
 	@Test
@@ -103,15 +155,17 @@ class MobileTargetSessionControllerTest {
 
 	private fun kotlinx.coroutines.test.TestScope.controller(
 		cue: FakeCueController,
-		scanner: FakeScanner,
+		scanner: BleScanner,
 		transport: FakeTransport,
 		glow: FakeGlowLauncher,
+		canScan: () -> Boolean = { true },
 	) = MobileTargetSessionController(
 		scope = this,
 		cueController = cue,
 		scanner = scanner,
 		transport = transport,
 		glowLauncher = glow,
+		canScan = canScan,
 	)
 
 	private class FakeCueController : CueController {

@@ -33,7 +33,7 @@ class WearFindCoordinator(
 	private val scope: CoroutineScope,
 	private val transport: PeerTransport,
 	private val advertiseSession: BleAdvertiseSession,
-	private val proximitySamples: Flow<FindCommand.ProximitySample>,
+	private val proximityEvents: Flow<FindCommand>,
 	private val guidanceHaptics: GuidanceHaptics,
 	private val permissionState: () -> BluetoothPermissionState,
 	private val bluetoothEnabled: () -> Boolean,
@@ -101,23 +101,34 @@ class WearFindCoordinator(
 
 		val smoother = RssiSmoother()
 		proximityJob = scope.launch {
-			proximitySamples
+			proximityEvents
 				.catch {
 					markProximityUnavailable(token, FindError.CAPABILITY_UNAVAILABLE)
 				}
-				.collect { sample ->
-					if (activeToken != token || sample.sessionToken != token) return@collect
-					val smoothed = smoother.add(sample.rssi)
-					val level = proximityLevel(smoothed)
-					mutableState.update {
-						it.copy(
-							proximityLevel = level,
-							smoothedRssi = smoothed,
-							proximityAvailable = true,
-							error = null,
-						)
+				.collect { event ->
+					when (event) {
+						is FindCommand.ProximitySample -> {
+							if (activeToken != token || event.sessionToken != token) return@collect
+							val smoothed = smoother.add(event.rssi)
+							val level = proximityLevel(smoothed)
+							mutableState.update {
+								it.copy(
+									proximityLevel = level,
+									smoothedRssi = smoothed,
+									proximityAvailable = true,
+									error = null,
+								)
+							}
+							restartGuidance(level, token)
+						}
+
+						is FindCommand.ProximityUnavailable -> {
+							if (activeToken != token || event.sessionToken != token) return@collect
+							markProximityUnavailable(token, event.error)
+						}
+
+						else -> Unit
 					}
-					restartGuidance(level, token)
 				}
 		}
 

@@ -24,9 +24,9 @@ class WearFindCoordinatorTest {
 	fun `watch advertises and uses phone rssi samples for guidance`() = runTest {
 		val transport = FakeTransport()
 		val advertiser = FakeAdvertiser()
-		val samples = MutableSharedFlow<FindCommand.ProximitySample>(extraBufferCapacity = 8)
+		val events = MutableSharedFlow<FindCommand>(extraBufferCapacity = 8)
 		val haptics = FakeHaptics()
-		val coordinator = coordinator(transport, advertiser, samples, haptics)
+		val coordinator = coordinator(transport, advertiser, events, haptics)
 
 		coordinator.start()
 		runCurrent()
@@ -36,7 +36,7 @@ class WearFindCoordinatorTest {
 			transport.commands,
 		)
 
-		samples.emit(FindCommand.ProximitySample(7, -80))
+		events.emit(FindCommand.ProximitySample(7, -80))
 		runCurrent()
 		assertEquals(ProximityLevel.COLD, coordinator.state.value.proximityLevel)
 		assertTrue(haptics.tickCount > 0)
@@ -49,13 +49,28 @@ class WearFindCoordinatorTest {
 	}
 
 	@Test
-	fun `samples for another session are ignored`() = runTest {
-		val samples = MutableSharedFlow<FindCommand.ProximitySample>(extraBufferCapacity = 8)
-		val coordinator = coordinator(FakeTransport(), FakeAdvertiser(), samples, FakeHaptics())
+	fun `phone permission failure replaces endless searching with actionable error`() = runTest {
+		val events = MutableSharedFlow<FindCommand>(extraBufferCapacity = 8)
+		val coordinator = coordinator(FakeTransport(), FakeAdvertiser(), events, FakeHaptics())
 		coordinator.start()
 		runCurrent()
 
-		samples.emit(FindCommand.ProximitySample(8, -45))
+		events.emit(FindCommand.ProximityUnavailable(7, FindError.PEER_PERMISSION_MISSING))
+		runCurrent()
+
+		assertTrue(coordinator.state.value.searching)
+		assertFalse(coordinator.state.value.proximityAvailable)
+		assertEquals(FindError.PEER_PERMISSION_MISSING, coordinator.state.value.error)
+	}
+
+	@Test
+	fun `samples for another session are ignored`() = runTest {
+		val events = MutableSharedFlow<FindCommand>(extraBufferCapacity = 8)
+		val coordinator = coordinator(FakeTransport(), FakeAdvertiser(), events, FakeHaptics())
+		coordinator.start()
+		runCurrent()
+
+		events.emit(FindCommand.ProximitySample(8, -45))
 		runCurrent()
 
 		assertEquals(null, coordinator.state.value.proximityLevel)
@@ -116,13 +131,13 @@ class WearFindCoordinatorTest {
 	private fun kotlinx.coroutines.test.TestScope.coordinator(
 		transport: FakeTransport,
 		advertiser: FakeAdvertiser,
-		samples: MutableSharedFlow<FindCommand.ProximitySample>,
+		events: MutableSharedFlow<FindCommand>,
 		haptics: FakeHaptics,
 	) = WearFindCoordinator(
 		scope = this,
 		transport = transport,
 		advertiseSession = BleAdvertiseSession(advertiser),
-		proximitySamples = samples,
+		proximityEvents = events,
 		guidanceHaptics = haptics,
 		permissionState = { BluetoothPermissionState(true, true, true, emptyList()) },
 		bluetoothEnabled = { true },

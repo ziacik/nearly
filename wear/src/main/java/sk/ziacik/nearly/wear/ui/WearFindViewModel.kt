@@ -3,10 +3,8 @@ package sk.ziacik.nearly.wear.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.launch
 import sk.ziacik.nearly.shared.CueMode
-import sk.ziacik.nearly.shared.FindCommand
 import sk.ziacik.nearly.wear.NearlyWearApplication
 import sk.ziacik.nearly.wear.cue.AndroidGuidanceHaptics
 import sk.ziacik.nearly.wear.data.WearPeerTransport
@@ -20,7 +18,7 @@ class WearFindViewModel(application: Application) : AndroidViewModel(application
 		scope = viewModelScope,
 		transport = WearPeerTransport(application),
 		advertiseSession = nearly.advertiseSession,
-		proximitySamples = nearly.proximityInbox.commands.filterIsInstance<FindCommand.ProximitySample>(),
+		proximityEvents = nearly.proximityInbox.commands,
 		guidanceHaptics = AndroidGuidanceHaptics(application),
 		permissionState = { bluetoothPermissionState(application) },
 		bluetoothEnabled = { isBluetoothEnabled(application) },

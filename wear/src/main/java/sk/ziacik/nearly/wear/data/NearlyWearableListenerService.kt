@@ -11,7 +11,7 @@ class NearlyWearableListenerService : WearableListenerService() {
 	override fun onMessageReceived(messageEvent: MessageEvent) {
 		val command = FindProtocol.decode(messageEvent.path, messageEvent.data) ?: return
 		val nearly = application as? NearlyWearApplication ?: return
-		if (command is FindCommand.ProximitySample) {
+		if (command is FindCommand.ProximitySample || command is FindCommand.ProximityUnavailable) {
 			nearly.proximityInbox.offer(command)
 			return
 		}

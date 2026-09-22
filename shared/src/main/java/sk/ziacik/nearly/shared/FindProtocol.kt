@@ -8,6 +8,7 @@ object FindProtocol {
 	const val START_PROXIMITY_PATH = "/nearly/proximity/start"
 	const val STOP_PROXIMITY_PATH = "/nearly/proximity/stop"
 	const val PROXIMITY_SAMPLE_PATH = "/nearly/proximity/sample"
+	const val PROXIMITY_UNAVAILABLE_PATH = "/nearly/proximity/unavailable"
 	const val SET_CUE_PATH = "/nearly/cue/set"
 
 	data class Message(
@@ -21,6 +22,11 @@ object FindProtocol {
 		is FindCommand.StartProximity -> tokenMessage(START_PROXIMITY_PATH, command.sessionToken)
 		is FindCommand.StopProximity -> tokenMessage(STOP_PROXIMITY_PATH, command.sessionToken)
 		is FindCommand.ProximitySample -> proximitySampleMessage(command.sessionToken, command.rssi)
+		is FindCommand.ProximityUnavailable -> errorMessage(
+			PROXIMITY_UNAVAILABLE_PATH,
+			command.sessionToken,
+			command.error,
+		)
 		is FindCommand.SetCue -> cueMessage(SET_CUE_PATH, command.sessionToken, command.cueMode)
 	}
 
@@ -31,6 +37,9 @@ object FindProtocol {
 		STOP_PROXIMITY_PATH -> decodeToken(payload)?.let(FindCommand::StopProximity)
 		PROXIMITY_SAMPLE_PATH -> decodeProximitySample(payload)?.let { (token, rssi) ->
 			FindCommand.ProximitySample(token, rssi)
+		}
+		PROXIMITY_UNAVAILABLE_PATH -> decodeError(payload)?.let { (token, error) ->
+			FindCommand.ProximityUnavailable(token, error)
 		}
 		SET_CUE_PATH -> decodeCue(payload)?.let { (token, cue) -> FindCommand.SetCue(token, cue) }
 		else -> null
@@ -49,6 +58,14 @@ object FindProtocol {
 			.array(),
 	)
 
+	private fun errorMessage(path: String, sessionToken: Int, error: FindError): Message = Message(
+		path = path,
+		payload = ByteBuffer.allocate(Int.SIZE_BYTES + 1)
+			.putInt(sessionToken)
+			.put(error.ordinal.toByte())
+			.array(),
+	)
+
 	private fun proximitySampleMessage(sessionToken: Int, rssi: Int): Message = Message(
 		path = PROXIMITY_SAMPLE_PATH,
 		payload = ByteBuffer.allocate(Int.SIZE_BYTES * 2)
@@ -63,6 +80,14 @@ object FindProtocol {
 		val sessionToken = buffer.int
 		val cueMode = CueMode.entries.getOrNull(buffer.get().toInt()) ?: return null
 		return sessionToken to cueMode
+	}
+
+	private fun decodeError(payload: ByteArray): Pair<Int, FindError>? {
+		if (payload.size != Int.SIZE_BYTES + 1) return null
+		val buffer = ByteBuffer.wrap(payload)
+		val sessionToken = buffer.int
+		val error = FindError.entries.getOrNull(buffer.get().toInt()) ?: return null
+		return sessionToken to error
 	}
 
 	private fun decodeToken(payload: ByteArray): Int? {
