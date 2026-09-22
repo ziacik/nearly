@@ -13,18 +13,18 @@ import sk.ziacik.nearly.shared.FindCommand
 
 class PeerTransportTest {
 	@Test
-	fun `selects only a nearby peer`() {
+	fun `selects a connected peer even when it is not directly nearby`() {
 		val peers = listOf(
 			PeerCandidate(id = "network-peer", isNearby = false),
 			PeerCandidate(id = "bluetooth-peer", isNearby = true),
 		)
 
-		assertEquals("bluetooth-peer", selectNearbyNodeId(peers))
+		assertEquals("network-peer", selectConnectedNodeId(peers))
 	}
 
 	@Test
-	fun `returns null when no peer is nearby`() {
-		assertNull(selectNearbyNodeId(listOf(PeerCandidate("network-peer", false))))
+	fun `returns null when there are no connected peers`() {
+		assertNull(selectConnectedNodeId(emptyList()))
 	}
 
 	@Test
