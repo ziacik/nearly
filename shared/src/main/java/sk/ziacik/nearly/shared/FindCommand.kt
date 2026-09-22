@@ -31,6 +31,11 @@ sealed interface FindCommand {
 		val rssi: Int,
 	) : FindCommand
 
+	data class ProximityUnavailable(
+		override val sessionToken: Int,
+		val error: FindError,
+	) : FindCommand
+
 	data class SetCue(
 		override val sessionToken: Int,
 		val cueMode: CueMode,

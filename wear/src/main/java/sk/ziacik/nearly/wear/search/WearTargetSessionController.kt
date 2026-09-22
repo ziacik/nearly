@@ -35,7 +35,8 @@ class WearTargetSessionController(
 				advertiseSession.stop(command.sessionToken)
 			}
 
-			is FindCommand.ProximitySample -> Unit
+			is FindCommand.ProximitySample,
+			is FindCommand.ProximityUnavailable -> Unit
 
 			is FindCommand.StopFind -> if (command.sessionToken == activeToken) {
 				stopCurrent()
