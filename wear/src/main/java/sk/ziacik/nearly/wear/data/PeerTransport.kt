@@ -13,7 +13,7 @@ data class PeerCandidate(
 	val isNearby: Boolean,
 )
 
-fun selectNearbyNodeId(peers: List<PeerCandidate>): String? = peers.firstOrNull(PeerCandidate::isNearby)?.id
+fun selectConnectedNodeId(peers: List<PeerCandidate>): String? = peers.firstOrNull()?.id
 
 interface PeerTransport {
 	suspend fun send(command: FindCommand): Boolean
@@ -34,7 +34,7 @@ class WearPeerTransport(context: Context) : PeerTransport {
 		val peers = nodeClient.connectedNodes.await().map { node ->
 			PeerCandidate(id = node.id, isNearby = node.isNearby)
 		}
-		val nodeId = selectNearbyNodeId(peers) ?: return false
+		val nodeId = selectConnectedNodeId(peers) ?: return false
 		val message = FindProtocol.encode(command)
 		messageClient.sendMessage(nodeId, message.path, message.payload).await()
 		return true
