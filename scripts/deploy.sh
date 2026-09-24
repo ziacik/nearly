@@ -94,6 +94,6 @@ echo "Installing on $SERIAL..."
 adb -s "$SERIAL" install -r "$APK"
 
 echo "Launching $PACKAGE_NAME..."
-adb -s "$SERIAL" shell monkey -p "$PACKAGE_NAME" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
+adb -s "$SERIAL" shell am start -n "$PACKAGE_NAME/.MainActivity" >/dev/null
 
 echo "Done."
