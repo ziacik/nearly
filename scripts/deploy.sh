@@ -21,7 +21,13 @@ command -v adb >/dev/null 2>&1 || {
 	exit 1
 }
 
-mapfile -t ALL_DEVICES < <(adb devices | awk 'NR > 1 && $2 == "device" { print $1 }')
+ALL_DEVICES=()
+while IFS= read -r line; do
+	[[ -z "$line" || "$line" == "List of devices attached" ]] && continue
+	if [[ "$line" =~ ^(.*[^[:space:]])[[:space:]]+device([[:space:]].*)?$ ]]; then
+		ALL_DEVICES+=("${BASH_REMATCH[1]}")
+	fi
+done < <(adb devices -l)
 
 if (( ${#ALL_DEVICES[@]} == 0 )); then
 	echo "No ADB devices connected." >&2
@@ -60,23 +66,30 @@ if [[ -n "$REQUESTED_SERIAL" ]]; then
 elif (( ${#CANDIDATES[@]} == 1 )); then
 	SERIAL="${CANDIDATES[0]}"
 else
-	echo "Choose $MODULE target:"
-	for i in "${!CANDIDATES[@]}"; do
-		serial="${CANDIDATES[$i]}"
+	LABELS=()
+	for serial in "${CANDIDATES[@]}"; do
 		model="$(adb -s "$serial" shell getprop ro.product.model 2>/dev/null | tr -d '\r' || true)"
-		printf '  %d) %s%s\n' "$((i + 1))" "$serial" "${model:+  ($model)}"
+		product="$(adb -s "$serial" shell getprop ro.product.name 2>/dev/null | tr -d '\r' || true)"
+		label=""
+		[[ -n "$model" ]] && label+="model:$model"
+		if [[ -n "$product" ]]; then
+			[[ -n "$label" ]] && label+="  "
+			label+="product:$product"
+		fi
+		[[ -n "$label" ]] && label+="  "
+		label+="$serial"
+		LABELS+=("$label")
 	done
-	read -r -p "> " choice
-	[[ "$choice" =~ ^[0-9]+$ ]] || {
+
+	echo "Choose $MODULE target:"
+	PS3="Select target: "
+	select label in "${LABELS[@]}"; do
+		if [[ -n "$label" ]]; then
+			SERIAL="${CANDIDATES[REPLY - 1]}"
+			break
+		fi
 		echo "Invalid selection." >&2
-		exit 1
-	}
-	index=$((choice - 1))
-	(( index >= 0 && index < ${#CANDIDATES[@]} )) || {
-		echo "Invalid selection." >&2
-		exit 1
-	}
-	SERIAL="${CANDIDATES[$index]}"
+	done
 fi
 
 echo "Building $MODULE..."
