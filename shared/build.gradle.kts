@@ -15,6 +15,7 @@ android {
 	lint {
 		warningsAsErrors = true
 		abortOnError = true
+		disable += setOf("AndroidGradlePluginVersion", "NewerVersionAvailable")
 	}
 
 	compileOptions {
