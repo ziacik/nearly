@@ -40,6 +40,5 @@ class WearFindViewModel(application: Application) : AndroidViewModel(application
 
 	override fun onCleared() {
 		viewModelScope.launch { coordinator.stop() }
-		super.onCleared()
 	}
 }
