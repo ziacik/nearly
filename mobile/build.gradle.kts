@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.compile.JavaCompile
+
 import java.util.Base64
 
 plugins {
@@ -15,7 +17,7 @@ if (!nearlyDebugKeystore.exists()) {
 
 android {
 	namespace = "sk.ziacik.nearly.mobile"
-	compileSdk = 36
+	compileSdk = 37
 
 	signingConfigs {
 		getByName("debug") {
@@ -30,7 +32,7 @@ android {
 	defaultConfig {
 		applicationId = "sk.ziacik.nearly"
 		minSdk = 26
-		targetSdk = 36
+		targetSdk = 37
 		versionCode = 10_001
 		versionName = "0.1.0"
 		testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -40,12 +42,27 @@ android {
 		compose = true
 	}
 
+	lint {
+		warningsAsErrors = true
+		abortOnError = true
+	}
+
 	compileOptions {
 		sourceCompatibility = JavaVersion.VERSION_17
 		targetCompatibility = JavaVersion.VERSION_17
 	}
 }
 
+
+kotlin {
+	compilerOptions {
+		allWarningsAsErrors.set(true)
+	}
+}
+
+tasks.withType<JavaCompile>().configureEach {
+	options.compilerArgs.addAll(listOf("-Xlint:all", "-Werror"))
+}
 dependencies {
 	implementation(project(":shared"))
 	implementation(platform(libs.androidx.compose.bom))
