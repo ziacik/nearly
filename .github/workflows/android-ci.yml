@@ -40,7 +40,7 @@ jobs:
 
       - name: Verify project
         run: |
-          ./gradlew \
+          if ! ./gradlew \
             :shared:testDebugUnitTest \
             :mobile:testDebugUnitTest \
             :wear:testDebugUnitTest \
@@ -51,7 +51,10 @@ jobs:
             :wear:assembleDebug \
             :mobile:assembleAndroidTest \
             :wear:assembleAndroidTest \
-            --stacktrace
+            --stacktrace; then
+            find . -path '*/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt' -print -exec cat {} \;
+            exit 1
+          fi
 
       - name: Verify stable debug signing identity
         run: |
