@@ -97,6 +97,7 @@ class MainActivity : ComponentActivity() {
 			setShowWhenLocked(active)
 			setTurnScreenOn(active)
 		} else {
+			@Suppress("DEPRECATION")
 			val legacyFlags = WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
 				WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
 			if (active) window.addFlags(legacyFlags) else window.clearFlags(legacyFlags)
