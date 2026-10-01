@@ -17,6 +17,7 @@ import sk.ziacik.nearly.shared.CueMode
 import sk.ziacik.nearly.shared.FindCommand
 import sk.ziacik.nearly.shared.FindError
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class MobileTargetSessionControllerTest {
 	@Test
 	fun `duplicate commands are idempotent`() = runTest {
