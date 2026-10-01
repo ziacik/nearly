@@ -19,6 +19,7 @@ import sk.ziacik.nearly.wear.permissions.BluetoothPermissionState
 import sk.ziacik.nearly.wear.proximity.BleAdvertiseSession
 import sk.ziacik.nearly.wear.proximity.BleAdvertiser
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class WearFindCoordinatorTest {
 	@Test
 	fun `watch advertises and uses phone rssi samples for guidance`() = runTest {
