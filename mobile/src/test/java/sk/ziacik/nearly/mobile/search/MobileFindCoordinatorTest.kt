@@ -19,6 +19,7 @@ import sk.ziacik.nearly.shared.FindError
 import sk.ziacik.nearly.shared.ProximityLevel
 import sk.ziacik.nearly.shared.SEARCH_TIMEOUT_MS
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class MobileFindCoordinatorTest {
 	@Test
 	fun `start scan and stop follow expected command order`() = runTest {
