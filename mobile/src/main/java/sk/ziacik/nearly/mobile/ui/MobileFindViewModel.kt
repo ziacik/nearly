@@ -38,6 +38,5 @@ class MobileFindViewModel(application: Application) : AndroidViewModel(applicati
 
 	override fun onCleared() {
 		viewModelScope.launch { coordinator.stop() }
-		super.onCleared()
 	}
 }
